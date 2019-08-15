@@ -31,30 +31,97 @@ const mailTransport = nodemailer.createTransport({
 });
 
 // Sends an email confirmation when a user changes his mailing list subscription.
-exports.sendEmailConfirmation = functions.database.ref('/users/{uid}').onWrite(async (change) => {
-  const snapshot = change.after;
-  const val = snapshot.val();
+/*exports.sendEmailConfirmation = functions.database.ref('/highPriorityLoops').onWrite(async (change)*/
+exports.sendPriorityLoopConfirmation = functions.firestore.document('highPriorityLoops/{wildcard}').onWrite(async (change, context) => {
+  
 
-  if (!snapshot.changed('subscribedToMailingList')) {
+  /*if (!snapshot.changed('subscribedToMailingList')) {
     return null;
-  }
+  }*/
+  
+  const document = change.after.exists ? change.after.data() : null;
+  var status = "unknown"
 
   const mailOptions = {
-    from: '"Spammy Corp." <noreply@firebase.com>',
-    to: val.email,
+    from: '"LiveTrackz Cloud App Notifications" <noreply@firebase.com>',
+    to: "support@livetrackz.com",
   };
 
-  const subscribed = val.subscribedToMailingList;
+  if (String(change.after.data().status = 0)) {
+    status = "submitted"
+  }
+  else if (String(change.after.data().status = 1)) {
+    status = "In-Progress"
+  }
+  else if (String(change.after.data().status = 2)) {
+    status = "Action-required"
+  }
+  else if (String(change.after.data().status = 3)) {
+    status = "Completed"
+  }
+  
 
   // Building Email message.
-  mailOptions.subject = subscribed ? 'Thanks and Welcome!' : 'Sad to see you go :`(';
-  mailOptions.text = subscribed ?
-      'Thanks you for subscribing to our newsletter. You will receive our next weekly newsletter.' :
-      'I hereby confirm that I will stop sending you the newsletter.';
+  mailOptions.subject = `High Priority Loop Request for "${String(change.after.data().trackName)}" Updated` ;
+  mailOptions.text =
+      `High Priority Loop Request has been updated
+      Name: ${String(change.after.data().trackName)}
+      URL: ${String(change.after.data().trackURL)}
+      Notes: ${String(change.after.data().trackNotes)}
+      status: ${status}`
+      ;
   
   try {
     await mailTransport.sendMail(mailOptions);
-    console.log(`New ${subscribed ? '' : 'un'}subscription confirmation email sent to:`, val.email);
+    console.log(`New subscription confirmation email sent to:`, );
+  } catch(error) {
+    console.error('There was an error while sending the email:', error);
+  }
+  return null;
+});
+
+exports.sendLoopConfirmation = functions.firestore.document('normalPriorityLoops/{wildcard}').onWrite(async (change, context) => {
+  
+
+  /*if (!snapshot.changed('subscribedToMailingList')) {
+    return null;
+  }*/
+  
+  const document = change.after.exists ? change.after.data() : null;
+  var status = "unknown"
+
+  const mailOptions = {
+    from: '"LiveTrackz Cloud App Notifications" <noreply@firebase.com>',
+    to: "support@livetrackz.com",
+  };
+
+  if (String(change.after.data().status = 0)) {
+    status = "submitted"
+  }
+  else if (String(change.after.data().status = 1)) {
+    status = "In-Progress"
+  }
+  else if (String(change.after.data().status = 2)) {
+    status = "Action-required"
+  }
+  else if (String(change.after.data().status = 3)) {
+    status = "Completed"
+  }
+  
+
+  // Building Email message.
+  mailOptions.subject = `Loop Request for "${String(change.after.data().trackName)}" Updated` ;
+  mailOptions.text =
+      `Loop Request has been updated
+      Name: ${String(change.after.data().trackName)}
+      URL: ${String(change.after.data().trackURL)}
+      Notes: ${String(change.after.data().trackNotes)}
+      status: ${status}`
+      ;
+  
+  try {
+    await mailTransport.sendMail(mailOptions);
+    console.log(`New subscription confirmation email sent to:`, );
   } catch(error) {
     console.error('There was an error while sending the email:', error);
   }
